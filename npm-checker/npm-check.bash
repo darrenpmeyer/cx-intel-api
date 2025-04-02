@@ -9,6 +9,11 @@ CHECKMARX_THREAT_INTEL_MAXQUERY=${CHECKMARX_THREAT_INTEL_MAXQUERY:-1000}
 ## configure this to change the exit code if risks are found; by default it exits 22
 CHECKMARX_THREAT_INTEL_EXITCODE=${CHECKMARX_THREAT_INTEL_EXITCODE:-22}
 
+## exit if no API key
+[[ -z "${CHECKMARX_THREAT_INTEL_APIKEY}" ]] && { 
+    >&2 echo "No API key provided, set CHECKMARX_THREAT_INTEL_APIKEY"; exit 127; 
+}
+
 query_results_file=$(mktemp -t queryresult)
 # echo "[" > "${query_results_file}"
 
@@ -49,12 +54,15 @@ function query_threat_intel() {
     ## this uses curl to query the API, and jq to filter the results
     ## so that only packages with risks are returned
     >&2 echo "sending query to Checkmarx SCS Threat Intel API"
+    web_result=$(mktemp -t webresult)
     "${_curl}" -# -L --compressed 'https://api.scs.checkmarx.com/v2/packages' \
       -H 'Content-type: application/json' \
       -H "Authorization: ${CHECKMARX_THREAT_INTEL_APIKEY}" \
-      --data "@${query_file}" | "${_jq}" '[ .[] | select(.risks!=[]) ]'
+      --data "@${query_file}" > "${web_result}"
+    "${_jq}" '[ .[] | select(.risks!=[]) ]' < "${web_result}"\
+      || { code=$?; >&2 "Failure while parsing response: see '${web_result}'"; exit $code; }
 
-    rm "${query_file}"
+    rm "${query_file}" "${web_result}"
 }
 
 function process_npm_result() {

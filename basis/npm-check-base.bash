@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eu
 #DESC: script to check npm project dependencies using Checkmarx Threat Intel API
-SCRIPT_SOURCE="$(readlink -f "${0}")" #%remove - only used for sourcing
+SCRIPT_SOURCE="$(dirname "$(readlink -f "${0}")")" #%remove - only used for sourcing
 source "${SCRIPT_SOURCE}/common_config.bash" 
 source "${SCRIPT_SOURCE}/common_threat_api.bash"
 

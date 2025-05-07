@@ -1,5 +1,19 @@
 # `npm-check.bash` - Check npm project for malicious packages
 
+Acquire [`npm-check.bash`](npm-check.bash) and check [its SHA-512 sum](npm-check.bash.sha512) before setting it executable, for example:
+
+```shell
+sha512sum -c npm-check.bash.sha512 && chmod +x npm-check.bash
+```
+
+Or if you have the repo owner's public key, get [the signature file](npm-check.bash.asc) and:
+
+```shell
+gpg --verify - < npm-check.bash.asc && chmod +x npm-check.bash
+```
+
+Then run the following, adjusted to your environment:
+
 ```
 env CHECKMARX_THREAT_INTEL_APIKEY=$(vault kv get /dev-secrets/cx-malware-api) \
   bash /path/to/npm-check.bash
@@ -58,3 +72,54 @@ Configuration is made through environment variables. In addition to basic config
 * `CHECKMARX_THREAT_INTEL_MAXQUERY` to control the maximum number of packages examined in each call to the API. This defaults to 1000, which is the maximum the API endpoint permits. You can reduce this if desired. In most cases, API use is billed on a number-of-queries basis.
 
 * `CHECKMARX_THREAT_INTEL_EXITCODE` to control the shell exit code when threats are detected.
+
+## Example
+
+In this example, `npm-check.bash` has been installed under `/usr/local/bin` and I'm using 1Password's CLI tool (`op`) to get the API key from my password vault to scan the `react-boilerplate` open-source NPM-based project.
+
+```text
+⋯›% env CHECKMARX_THREAT_INTEL_APIKEY=$(op item get 'Checkmarx Malicious Packages API' --reveal --fields credential) \
+bash /usr/local/bin/npm-checker/npm-check.bash > risks.json && rm risks.json
+
+Asking npm about packages to install using '/opt/homebrew/bin/npm'
+Examining input for NPM packages
+npm warn old lockfile
+npm warn old lockfile The package-lock.json file was created with an old version of npm,
+npm warn old lockfile so supplemental metadata must be fetched from the registry.
+npm warn old lockfile
+npm warn old lockfile This is a one-time fix-up, please be patient...
+npm warn old lockfile
+... 📦 100 packages read
+... 📦 200 packages read
+... 📦 300 packages read
+... 📦 400 packages read
+... 📦 500 packages read
+... 📦 600 packages read
+... 📦 700 packages read
+... 📦 800 packages read
+... 📦 900 packages read
+... 📦 1000 packages read
+preparing to query 1000 package(s)
+sending query to Checkmarx SCS Threat Intel API
+######################################################################## 100.0%
+Resuming examination of input for NPM packages
+... 📦 1100 packages read
+... 📦 1200 packages read
+... 📦 1300 packages read
+... 📦 1400 packages read
+... 📦 1500 packages read
+... 📦 1600 packages read
+... 📦 1700 packages read
+... 📦 1800 packages read
+... 📦 1823 packages read
+preparing to query 823 package(s)
+sending query to Checkmarx SCS Threat Intel API
+######################################################################## 100.0%
+✅ No risky packages identified in this review (1823 examined)
+```
+
+The script runs `npm install --dry-run` automatically in the `react-boilerplate` directory; NPM resolves the packages that would be installed, and the script reads them in. Since one API query can do up to 1000 packages at once, we send the first 1000 to the API, then resume reading the to-be-installed package list.
+
+Since no risky packages were identified, we get an exit code of `0` and a nice green checkmark for our logs. If risky packages *had been* identified, we'd have got information about them along with a JSON document detailing risks output on STDOUT, which we redirect to `risks.json`. the `&& rm risks.json` says "if we exit 0, which means no risks, remove the empty risks.json file".
+
+All 1823 npm packages are identified, resolved, and scanned -- without downloading any of them -- in just over 30 seconds. And the bulk of that time is spent by npm resolving and outputting the package lists.

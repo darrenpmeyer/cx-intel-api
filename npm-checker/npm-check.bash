@@ -1,5 +1,7 @@
-#!/usr/bin/env /bin/bash
+#!/usr/bin/env bash
 set -eu
+
+#%include 'common_config.bash'
 ## set this environment variable in your build environment!
 CHECKMARX_THREAT_INTEL_APIKEY=${CHECKMARX_THREAT_INTEL_APIKEY:-}
 
@@ -10,15 +12,15 @@ CHECKMARX_THREAT_INTEL_MAXQUERY=${CHECKMARX_THREAT_INTEL_MAXQUERY:-1000}
 CHECKMARX_THREAT_INTEL_EXITCODE=${CHECKMARX_THREAT_INTEL_EXITCODE:-22}
 
 ## exit if no API key
-[[ -z "${CHECKMARX_THREAT_INTEL_APIKEY}" ]] && { 
-    >&2 echo "No API key provided, set CHECKMARX_THREAT_INTEL_APIKEY"; exit 127; 
+[[ -z "${CHECKMARX_THREAT_INTEL_APIKEY}" ]] && {
+    >&2 echo "No API key provided, set CHECKMARX_THREAT_INTEL_APIKEY"; exit 127;
 }
 
 query_results_file=$(mktemp -t queryresult)
 # echo "[" > "${query_results_file}"
 
 ## looks for required tools in PATH; modify these if auto-detection fails
-##  you can set the appropriate environment var (e.g. BIN_CURL for curl) 
+##  you can set the appropriate environment var (e.g. BIN_CURL for curl)
 ##  or modify the script as needed
 _curl=${BIN_CURL:-$(which curl)}
 _jq=${BIN_JQ:-$(which jq)}
@@ -30,13 +32,7 @@ _npm=${BIN_NPM:-$(which npm)}
 declare -a packages
 package_count=0
 
-function npm_pkg_spec() {
-    pkg_name=$(echo "${1}" | cut -d ' ' -f 1)
-    pkg_ver=$(echo "${1}" | cut -d ' ' -f 2)
-
-    echo "{ \"type\": \"npm\", \"name\": \"${pkg_name}\", \"version\": \"${pkg_ver}\" }"
-}
-
+#%include 'common_threat_api.bash'
 function join_comma() {
     local IFS=', '
     echo "$*"
@@ -65,13 +61,20 @@ function query_threat_intel() {
     rm "${query_file}" "${web_result}"
 }
 
+function npm_pkg_spec() {
+    pkg_name=$(echo "${1}" | cut -d ' ' -f 1)
+    pkg_ver=$(echo "${1}" | cut -d ' ' -f 2)
+
+    echo "{ \"type\": \"npm\", \"name\": \"${pkg_name}\", \"version\": \"${pkg_ver}\" }"
+}
+
 function process_npm_result() {
     >&2 echo "Examining input for NPM packages"
     while IFS=$'\n' read -r line
     do
         [[ "${line}" =~ ^add[[:blank:]] ]] || continue
         package_spec="$(echo "${line}" | cut -d ' ' -f 2-)"
-    
+
         packages+=("$(npm_pkg_spec "${package_spec}")")
         package_count=$(($package_count + 1))
         [[ $((${#packages[@]} % 100 )) -eq 0 ]] && >&2 echo "... 📦 $package_count packages read"
@@ -127,7 +130,7 @@ else
 fi
 
 ###
-# npm-checker.bash - script to check npm project dependencies using Checkmarx Threat Intel API
+# npm-check.bash - script to check npm project dependencies using Checkmarx Threat Intel API
 #     Copyright (C) 2025  Darren P Meyer
 
 #     This program is free software: you can redistribute it and/or modify
@@ -142,3 +145,4 @@ fi
 
 #     You should have received a copy of the GNU Affero General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+

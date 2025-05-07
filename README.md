@@ -4,7 +4,7 @@ A collection of tools useful for integrating the Checkmarx SCS Threat Intel API 
 
 These tools can be used as-is, but are intended as templates for modification and use. These tools were written by Darren P Meyer while employed by Checkmarx, but are not officially supported by Checkmarx -- they're shared as a form of education and guidance.
 
-- [`npm-check.bash`](npm-checker/npm-check.bash) can be run in an npm project anywhere `npm install` would work; it will use `npm` to determine what would be installed and exits non-zero if any of those package versions have supply-chain risks (other than known vulnerabilities) or are known to be malicious / malware.
+- [`npm-check.bash`](npm-checker/README.md) can be run in an npm project anywhere `npm install` would work; it will use `npm` to determine what would be installed and exits non-zero if any of those package versions have supply-chain risks (other than known vulnerabilities) or are known to be malicious / malware.
 
 ## CI integration notes
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from datetime import datetime
+import subprocess
 import argparse
 import sys
 import os
@@ -160,4 +161,20 @@ for file in _FLAGS.filename:
             print(f"""###\n# {os.path.basename(destfilename)} - {file_desc}\n""" + license_body, file=outf )
     except FileNotFoundError as err:
         print_err(f"Could not find pathway to '{destfilename}': does '{os.path.dirname(destfilename)}' exist?")
-        
+    
+    sha512_file = destfilename + '.sha512'
+    try:
+        with open(sha512_file, 'w') as shaf:
+            out = subprocess.run(['sha512sum', destfilename], stdout=shaf)
+        out.check_returncode()
+    except subprocess.CalledProcessError as err:
+        print_err("Unable to generate SHA-512 sum: " + str(err))
+        if os.path.exists(sha512_file):
+            os.unlink(sha512_file)
+        exit(1)
+
+    try:
+        out = subprocess.run(['gpg', '--detatch-sign', '-a', destfilename], capture_output=True)
+    except subprocess.CalledProcessError as err:
+        print_err("Unable to generate signature: " + str(err))
+        exit(1)

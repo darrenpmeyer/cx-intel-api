@@ -4,7 +4,7 @@ This directory is where initial development and testing occurs. Essentially, we 
 
 So we build things in a modular way inside the BASIS area, and then automatically "de-modularize" for ease of use/deployment.
 
-**TL;DR** use the tools from the directories at repo root for prod, develop changes here
+**TL;DR** use the tools from the directories at repo root for prod, develop changes here, and make sure you compile the scripts and commit the results before merging to `main`
 
 ## No Warranty
 

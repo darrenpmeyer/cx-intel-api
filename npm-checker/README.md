@@ -1,22 +1,10 @@
 # npm-checker - Check npm project for malicious packages
 
+<a name='npm-check'></a>
+
 ## npm-check.bash - use NPM to resolve installation and check
 
-Acquire [`npm-check.bash`](npm-check.bash) and check [its SHA-512 sum](npm-check.bash.sha512) before setting it executable, for example:
-
 ```shell
-sha512sum -c npm-check.bash.sha512 && chmod +x npm-check.bash
-```
-
-Or if you have the repo owner's public key, get [the signature file](npm-check.bash.asc) and:
-
-```shell
-gpg --verify - < npm-check.bash.asc && chmod +x npm-check.bash
-```
-
-Then run the following, adjusted to your environment:
-
-```
 env CHECKMARX_THREAT_INTEL_APIKEY=$(vault kv get /dev-secrets/cx-malware-api) \
   bash /path/to/npm-check.bash
 ```
@@ -125,6 +113,8 @@ The script runs `npm install --dry-run` automatically in the `react-boilerplate`
 Since no risky packages were identified, we get an exit code of `0` and a nice green checkmark for our logs. If risky packages *had been* identified, we'd have got information about them along with a JSON document detailing risks output on STDOUT, which we redirect to `risks.json`. the `&& rm risks.json` says "if we exit 0, which means no risks, remove the empty risks.json file".
 
 All 1823 npm packages are identified, resolved, and scanned -- without downloading any of them -- in just over 30 seconds. And the bulk of that time is spent by npm resolving and outputting the package lists.
+
+<a name='npm-check-lockfile'></a>
 
 ## `npm-check-lockfile.bash` - Check just package-lock.json file
 

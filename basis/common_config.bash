@@ -20,7 +20,6 @@ query_results_file=$(mktemp -t queryresult)
 ##  or modify the script as needed
 _curl=${BIN_CURL:-$(which curl)}
 _jq=${BIN_JQ:-$(which jq)}
-_npm=${BIN_NPM:-$(which npm)}
 
 [[ -x "${_curl}" ]] || { >&2 echo "Could not find 'curl' in path, adjust PATH or script"; exit 127; };
 [[ -x "${_jq}" ]] || { >&2 echo "Could not find 'jq' in path, adjust PATH or script"; exit 127; };

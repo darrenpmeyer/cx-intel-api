@@ -3,6 +3,23 @@ function join_comma() {
     echo "$*"
 }
 
+function _raw_query_threat_intel() {
+    query_file=${1}
+    ## this uses curl to query the API, and jq to filter the results
+    ## so that only packages with risks are returned
+    >&2 echo "sending query to Checkmarx SCS Threat Intel API"
+    web_result=$(mktemp -t webresult)
+    "${_curl}" -# -L --compressed 'https://api.scs.checkmarx.com/v2/packages' \
+      -H 'Content-type: application/json' \
+      -H "Authorization: ${CHECKMARX_THREAT_INTEL_APIKEY}" \
+      --data "@${query_file}" > "${web_result}"
+    # cat "${web_result}"
+    "${_jq}" '[ .[] | select(.risks!=[]) ]' < "${web_result}"\
+      || { code=$?; >&2 "Failure while parsing response: see '${web_result}'"; exit $code; }
+
+    rm "${query_file}" "${web_result}"
+}
+
 function query_threat_intel() {
     ### query_threat_intel queries all packages in the `packages` array
     query_file="$(mktemp -t queryfile)"
@@ -12,16 +29,27 @@ function query_threat_intel() {
     echo $(join_comma "${packages[@]}") >> "${query_file}"
     echo ']' >> "${query_file}"
 
-    ## this uses curl to query the API, and jq to filter the results
-    ## so that only packages with risks are returned
-    >&2 echo "sending query to Checkmarx SCS Threat Intel API"
-    web_result=$(mktemp -t webresult)
-    "${_curl}" -# -L --compressed 'https://api.scs.checkmarx.com/v2/packages' \
-      -H 'Content-type: application/json' \
-      -H "Authorization: ${CHECKMARX_THREAT_INTEL_APIKEY}" \
-      --data "@${query_file}" > "${web_result}"
-    "${_jq}" '[ .[] | select(.risks!=[]) ]' < "${web_result}"\
-      || { code=$?; >&2 "Failure while parsing response: see '${web_result}'"; exit $code; }
+    _raw_query_threat_intel "${query_file}"
+}
 
-    rm "${query_file}" "${web_result}"
+function merge_threat_results() {
+    ## join all results together using JQ
+    ## merge_threat_results "${query_results_file}"
+    query_results_file=${1}
+    tmp_query_results=$(mktemp)
+    "${_jq}" -s 'add' < "${query_results_file}" > "${tmp_query_results}"
+    rm "${query_results_file}" && mv "${tmp_query_results}" "${query_results_file}"
+
+    ## now count results and exit if any risks were found
+    risky_package_count=$(( $("${_jq}" 'length' < "${query_results_file}") + 0 ))
+    if [[ $risky_package_count -gt 0 ]]
+    then
+        cat "${query_results_file}"
+        >&2 echo "ALERT! found ${risky_package_count} packages with risks! Exiting with code ${CHECKMARX_THREAT_INTEL_EXITCODE}"
+        >&2 echo "... total of $package_count packages were examined"
+        rm "${query_results_file}"
+        exit ${CHECKMARX_THREAT_INTEL_EXITCODE}
+    else
+        >&2 echo "✅ No risky packages identified in this review ($package_count examined)"
+    fi
 }

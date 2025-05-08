@@ -1,10 +1,21 @@
 # Checkmarx Threat Intel API integrations
 
-A collection of tools useful for integrating the Checkmarx SCS Threat Intel API into CI/CD and other automated build processes.
+A collection of tools useful for integrating the Checkmarx SCS Threat Intel API into CI/CD and other automated build processes. These tools require an active API key for the commercial Threat Intel API.
 
 These tools can be used as-is, but are intended as templates for modification and use. These tools were written by Darren P Meyer while employed by Checkmarx, but are not officially supported by Checkmarx -- they're shared as a form of education and guidance.
 
-- [`npm-check.bash`](npm-checker/README.md) can be run in an npm project anywhere `npm install` would work; it will use `npm` to determine what would be installed and exits non-zero if any of those package versions have supply-chain risks (other than known vulnerabilities) or are known to be malicious / malware.
+* [`npm-checker`](npm-checker/) checks NPM-based projects for indicators of supply-chain risks (except known vulenrabilities)
+    - [`npm-check.bash`](npm-checker/README.md#npm-check) can be run in an npm project anywhere `npm install` would work; it will use `npm` to determine what would be installed and exits non-zero if any of those package versions have supply-chain risks (other than known vulnerabilities) or are known to be malicious / malware.
+    - [`npm-check-lockfile.bash`](npm-checker/README.md#npm-check-lockfile) is similar to `npm-check.bash` but it trusts the `package-lock.json`; this makes it much faster, but in exchange it is less complete and potentially less accurate
+* [`pip3-checker`](pip3-checker/) checks PyPI-based projects that are installable with `pip3` for indicators of supply-chain risks (except known vulenrabilities)
+    - [`pip3-check.bash`](pip3-checker/README.md) can be run for the installation of any `pip3`-based module; you can use a `requirements.txt`, a local module with a 
+    `pyproject.toml`, or a PyPI spec like `requests==2.32.3` -- basically anything that `pip3 install` will accept. It uses `pip3` to determine what would be installed and exits non-zero if any of those package versions have supply-chain risks (other than known vulnerabilities) or are known to be malicious / malware.
+
+Note that the `basis` directory is intended as development-only; it's strongly recommended not to use any scripts there directly.
+
+## Verification
+
+Each "shipped" script has two verification files -- a SHA-512 hash in `${SCRIPT_NAME}.sha512` and a GnuPG signature in `${SCRIPT_NAME}.asc`. The signature uses the public key associated with the signature on the commit that last created the script.
 
 ## CI integration notes
 
@@ -17,6 +28,7 @@ These examples are pretty agressive about returning non-zero; when they do so, m
 They are provided under the GNU Affero General Public License (AGPL) unless otherwise specified (see the LICENSE file in each tool directory); this license permits you to modify and distribute the code as long as you share the source _with the people to whom you distribute it_, whether as a service or not. 
 
 The AGPL was chosen to discourage people from incorporating these components into proprietary software, because making them part of an application would require people to share that code; however, **simply using them as part of your build process does not count as distribution or make these components part of your applications**, so regular customer use should be unencumbered.
+
 
 ## No Warranty
 

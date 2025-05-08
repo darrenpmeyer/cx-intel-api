@@ -1,4 +1,6 @@
-# `npm-check.bash` - Check npm project for malicious packages
+# npm-checker - Check npm project for malicious packages
+
+## npm-check.bash - use NPM to resolve installation and check
 
 Acquire [`npm-check.bash`](npm-check.bash) and check [its SHA-512 sum](npm-check.bash.sha512) before setting it executable, for example:
 
@@ -27,7 +29,7 @@ Queries the Checkmarx SCS Threat Intel API to determine whether running `npm ins
 
 If risks are found for any package, the JSON record(s) for found risks will be printed to STDOUT and the script will exit with code 22.
 
-## Arguments 
+### Arguments 
 
 `npm-check.bash` takes a single *optional* argument (`INPUT_FILE`. If provided, npm will not be queried, but file or STDIN content will be used instead.
 
@@ -44,20 +46,20 @@ If risks are found for any package, the JSON record(s) for found risks will be p
   npm install --dry-run | env ... npm-check.bash
   ```
 
-## Errors
+### Errors
 
 * `0` -- no error, no risks found, proceed
 * `22` -- risks found (this can be customized, see Additional configuration section)
 * `127` -- a required tool was not found. Read error message printed to see which one, see Requirements section
 * other -- a tool failed to complete successfully and returned its own error. Most commonly occurs when curl experiences a network error
 
-## Known limitations
+### Known limitations
 
 1. Does not support `npm upgrade` operations; the script is intended for full install operations in CI, using with output from `npm upgrade --dry-run` may not produce valid results.
 
 2. There may be risks unidentified and/or not yet reported by the Threat Intel API; a lack of risks detected is not a guarantee of safety (this is true of all tools in this class... security is hard).
 
-## Requirements
+### Requirements
 
 * POSIX (or close) enviromennt with `bash` available; tested on Linux and macOS
 * Requires that `curl` and `jq` be available. 
@@ -65,7 +67,7 @@ If risks are found for any package, the JSON record(s) for found risks will be p
 * Required tools will be used from the `PATH` if found, or can be specified with environment variables `BIN_CURL`, `BIN_JQ`, and `BIN_NPM`
 * `CHECKMARX_THREAT_INTEL_APIKEY` must be set to a valid API key for the Threat Intel API; this is separate from Checkmarx One API keys. We strongly recommend storing this value in a vault (such as HashiCorp Vault, 1Password, GitHub Secrets, etc.) and retrieving it at runtime, especially in CI or similar environments.
 
-## Additional Configuration
+### Additional Configuration
 
 Configuration is made through environment variables. In addition to basic configuration specified above, you can set:
 
@@ -73,7 +75,7 @@ Configuration is made through environment variables. In addition to basic config
 
 * `CHECKMARX_THREAT_INTEL_EXITCODE` to control the shell exit code when threats are detected.
 
-## Example
+### Example
 
 In this example, `npm-check.bash` has been installed under `/usr/local/bin` and I'm using 1Password's CLI tool (`op`) to get the API key from my password vault to scan the `react-boilerplate` open-source NPM-based project.
 
@@ -123,6 +125,22 @@ The script runs `npm install --dry-run` automatically in the `react-boilerplate`
 Since no risky packages were identified, we get an exit code of `0` and a nice green checkmark for our logs. If risky packages *had been* identified, we'd have got information about them along with a JSON document detailing risks output on STDOUT, which we redirect to `risks.json`. the `&& rm risks.json` says "if we exit 0, which means no risks, remove the empty risks.json file".
 
 All 1823 npm packages are identified, resolved, and scanned -- without downloading any of them -- in just over 30 seconds. And the bulk of that time is spent by npm resolving and outputting the package lists.
+
+## `npm-check-lockfile.bash` - Check just package-lock.json file
+
+```shell
+env CHECKMARX_THREAT_INTEL_APIKEY=$(vault kv get /dev-secrets/cx-malware-api) \
+  bash /path/to/npm-check-lockfile.bash
+```
+
+This uses the same basic configuration, errors, etc. as `npm-check.bash`, except that:
+
+* it trusts `package-lock.json` ; and therefore does not need `npm` to be installed, but has risk of inaccuracy if the package lock file is out of date or incorrect
+* it does not scan transitive dependencies reliably; you should assume only direct dependencies will be scanned
+
+The tradeoff is that it is _extremely fast_, since it does not require NPM to perform any resolution.
+
+If your `package-lock.json` has a different name or isn't in the current directory, specify the path to it by setting the `NPM_PACKAGE_LOCK` environment variable.
 
 ## No Warranty
 

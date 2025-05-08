@@ -174,7 +174,8 @@ for file in _FLAGS.filename:
         exit(1)
 
     try:
-        out = subprocess.run(['gpg', '--detatch-sign', '-a', destfilename], capture_output=True)
+        out = subprocess.run(['/opt/homebrew/bin/gpg', '--detach-sign', '-a', destfilename], capture_output=True)
+        out.check_returncode()
     except subprocess.CalledProcessError as err:
         print_err("Unable to generate signature: " + str(err))
         exit(1)

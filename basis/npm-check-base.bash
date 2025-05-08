@@ -5,6 +5,9 @@ SCRIPT_SOURCE="$(dirname "$(readlink -f "${0}")")" #%remove - only used for sour
 source "${SCRIPT_SOURCE}/common_config.bash" 
 source "${SCRIPT_SOURCE}/common_threat_api.bash"
 
+_npm=${BIN_NPM:-$(which npm)}
+[[ -x "${_npm}" ]] || { >&2 echo "Could not find 'npm' in path, adjust PATH or script"; exit 127; };
+
 function npm_pkg_spec() {
     pkg_name=$(echo "${1}" | cut -d ' ' -f 1)
     pkg_ver=$(echo "${1}" | cut -d ' ' -f 2)
@@ -14,6 +17,7 @@ function npm_pkg_spec() {
 
 function process_npm_result() {
     >&2 echo "Examining input for NPM packages"
+    query_results_file=$(mktemp)
     while IFS=$'\n' read -r line
     do
         [[ "${line}" =~ ^add[[:blank:]] ]] || continue
@@ -35,26 +39,7 @@ function process_npm_result() {
     >&2 echo "... 📦 $package_count packages read"
 
     query_threat_intel >> "${query_results_file}"
-    # echo ']' >> ${query_results_file}
-
-    ## join all results together using JQ
-    tmp_query_results=$(mktemp)
-    "${_jq}" -s 'add' < "${query_results_file}" > "${tmp_query_results}"
-    rm "${query_results_file}" && mv "${tmp_query_results}" "${query_results_file}"
-
-    ## now count results and exit if any risks were found
-    risky_package_count=$(( $("${_jq}" 'length' < "${query_results_file}") + 0 ))
-    if [[ $risky_package_count -gt 0 ]]
-    then
-        cat "${query_results_file}"
-        >&2 echo "ALERT! found ${risky_package_count} packages with risks! Exiting with code ${CHECKMARX_THREAT_INTEL_EXITCODE}"
-        >&2 echo "... total of $package_count packages were examined"
-        rm "${query_results_file}"
-        exit ${CHECKMARX_THREAT_INTEL_EXITCODE}
-    else
-        >&2 echo "✅ No risky packages identified in this review ($package_count examined)"
-    fi
-
+    merge_threat_results "${query_results_file}"
     rm "${query_results_file}"
 }
 

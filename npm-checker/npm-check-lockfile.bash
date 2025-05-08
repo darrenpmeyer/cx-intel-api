@@ -30,6 +30,11 @@ _jq=${BIN_JQ:-$(which jq)}
 declare -a packages
 package_count=0
 
+## change this if you want to use a non-standard package-lock.json location
+NPM_PACKAGE_LOCK=${NPM_PACKAGE_LOCK:-'./package-lock.json'}
+[[ -f "${NPM_PACKAGE_LOCK}" ]] || { >&2 echo "Can't find '${NPM_PACKAGE_LOCK}'; fatal"; exit 127; }
+
+
 function join_comma() {
     local IFS=', '
     echo "$*"
@@ -86,61 +91,42 @@ function merge_threat_results() {
     fi
 }
 
-_npm=${BIN_NPM:-$(which npm)}
-[[ -x "${_npm}" ]] || { >&2 echo "Could not find 'npm' in path, adjust PATH or script"; exit 127; };
-
-function npm_pkg_spec() {
-    pkg_name=$(echo "${1}" | cut -d ' ' -f 1)
-    pkg_ver=$(echo "${1}" | cut -d ' ' -f 2)
-
-    echo "{ \"type\": \"npm\", \"name\": \"${pkg_name}\", \"version\": \"${pkg_ver}\" }"
-}
-
-function process_npm_result() {
-    >&2 echo "Examining input for NPM packages"
-    query_results_file=$(mktemp)
-    while IFS=$'\n' read -r line
+>&2 echo "Analyzing '${NPM_PACKAGE_LOCK}'"
+base_query="$(jq -r '[.dependencies | to_entries[] | { "type": "npm", "name": "\(.key)", "version": "\(.value.version)" }]' < ${NPM_PACKAGE_LOCK})"
+# cat <<< ${base_query}
+package_count=$(jq length <<< "${base_query}")
+query_results_file=$(mktemp)
+query_file=$(mktemp)
+>&2 echo "📦 ${package_count} packages identified"
+if [[ $package_count -gt $CHECKMARX_THREAT_INTEL_MAXQUERY ]]
+then
+    inc_count=0
+    sets=$(( $package_count / $CHECKMARX_THREAT_INTEL_MAXQUERY ))
+    sets=$(( $sets + 1 ))
+    >&2 echo "-> exceeds ${CHECKMARX_THREAT_INTEL_MAXQUERY} items, splitting into ${sets} queries"
+    for (( start = 0; start < $package_count; start += $CHECKMARX_THREAT_INTEL_MAXQUERY ))
     do
-        [[ "${line}" =~ ^add[[:blank:]] ]] || continue
-        package_spec="$(echo "${line}" | cut -d ' ' -f 2-)"
-
-        packages+=("$(npm_pkg_spec "${package_spec}")")
-        package_count=$(($package_count + 1))
-        [[ $((${#packages[@]} % 100 )) -eq 0 ]] && >&2 echo "... 📦 $package_count packages read"
-
-        if [[ ${#packages[@]} -eq ${CHECKMARX_THREAT_INTEL_MAXQUERY} ]]
-        then
-            ## we hit the max size, run a query!
-            query_threat_intel >> "${query_results_file}"
-            # echo ',' >> "${query_results_file}"
-            packages=()
-            >&2 echo "Resuming examination of input for NPM packages"
-        fi
+        end=$(( $start + $CHECKMARX_THREAT_INTEL_MAXQUERY ))
+        [[ $end -gt $package_count ]] && end=$package_count
+        # >&2 echo "$(( $start + 1 ))-${end}"
+        jq ".[$start:$end]" <<< "${base_query}" > "${query_file}"
+        # >&2 echo "DEBUG query file '${query_file}'"
+        this_run_count=$(jq length "${query_file}")
+        inc_count=$(( $inc_count + $this_run_count ))
+        >&2 echo "... 📦 ${inc_count} packages read"
+        >&2 echo -e "preparing to query ${this_run_count} package(s)"
+        _raw_query_threat_intel "${query_file}" >> "${query_results_file}"
     done
-    >&2 echo "... 📦 $package_count packages read"
-
-    query_threat_intel >> "${query_results_file}"
-    merge_threat_results "${query_results_file}"
-    rm "${query_results_file}"
-}
-
-FILE_SOURCE=${1:-}
-if [[ "${FILE_SOURCE}" == "-" ]]
-then
-    process_npm_result
-elif [[ -n "${FILE_SOURCE}" ]]
-then
-    >&2 echo "Using saved output from '${FILE_SOURCE}'"
-    process_npm_result < "${FILE_SOURCE}"
 else
-    >&2 echo "Asking npm about packages to install using '${_npm}'"
-    [[ -x "${_npm}" ]] || { >&2 echo "Could not find 'npm' in path, adjust PATH or script"; exit 127; };
-
-    "${_npm}" install --dry-run | process_npm_result
+    >&2 echo "... 📦 $(jq length "${query_file}") packages read"
+    cat <<< "${base_query}" > "${query_file}"
+    _raw_query_threat_intel "${query_file}" >> "${query_results_file}"
 fi
 
+merge_threat_results "${query_results_file}"
+rm "${query_results_file}"
 ###
-# npm-check.bash - script to check npm project dependencies using Checkmarx Threat Intel API
+# npm-check-lockfile.bash - script to check npm package-lock.json deps using Checkmarx Threat Intel API
 #     Copyright (C) 2025  Darren P Meyer
 
 #     This program is free software: you can redistribute it and/or modify

@@ -123,3 +123,7 @@ The script runs `npm install --dry-run` automatically in the `react-boilerplate`
 Since no risky packages were identified, we get an exit code of `0` and a nice green checkmark for our logs. If risky packages *had been* identified, we'd have got information about them along with a JSON document detailing risks output on STDOUT, which we redirect to `risks.json`. the `&& rm risks.json` says "if we exit 0, which means no risks, remove the empty risks.json file".
 
 All 1823 npm packages are identified, resolved, and scanned -- without downloading any of them -- in just over 30 seconds. And the bulk of that time is spent by npm resolving and outputting the package lists.
+
+## No Warranty
+
+**This software is provided by the copyright holders and contributors “AS IS” and any express or implied warranties, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose are disclaimed. In no event shall the copyright owner or contributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this software, even if advised of the possibility of such damage.**

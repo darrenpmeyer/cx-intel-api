@@ -16,4 +16,8 @@ These examples are pretty agressive about returning non-zero; when they do so, m
 
 They are provided under the GNU Affero General Public License (AGPL) unless otherwise specified (see the LICENSE file in each tool directory); this license permits you to modify and distribute the code as long as you share the source _with the people to whom you distribute it_, whether as a service or not. 
 
-The AGPL was chosen to discourage people from incorporating these components into proprietary software, because making them part of an application would require people to share that code; however, **simply using them as part of your build process does not count as distribution or make these components part of your applications**, so regular customer use should be free of problems.
+The AGPL was chosen to discourage people from incorporating these components into proprietary software, because making them part of an application would require people to share that code; however, **simply using them as part of your build process does not count as distribution or make these components part of your applications**, so regular customer use should be unencumbered.
+
+## No Warranty
+
+**This software is provided by the copyright holders and contributors “AS IS” and any express or implied warranties, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose are disclaimed. In no event shall the copyright owner or contributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this software, even if advised of the possibility of such damage.**

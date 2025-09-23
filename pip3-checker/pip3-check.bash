@@ -2,17 +2,17 @@
 set -eu
 
 ## set this environment variable in your build environment!
-CHECKMARX_THREAT_INTEL_APIKEY=${CHECKMARX_THREAT_INTEL_APIKEY:-}
+CHECKMARX_MPIAPI_KEY=${CHECKMARX_MPIAPI_KEY:-}
 
 ## configure this if you want; defaults to API server limit, 1000 packages per query
-CHECKMARX_THREAT_INTEL_MAXQUERY=${CHECKMARX_THREAT_INTEL_MAXQUERY:-1000}
+CHECKMARX_MPIAPI_MAXQUERY=${CHECKMARX_MPIAPI_MAXQUERY:-1000}
 
 ## configure this to change the exit code if risks are found; by default it exits 22
-CHECKMARX_THREAT_INTEL_EXITCODE=${CHECKMARX_THREAT_INTEL_EXITCODE:-22}
+CHECKMARX_MPIAPI_EXITCODE=${CHECKMARX_MPIAPI_EXITCODE:-22}
 
 ## exit if no API key
-[[ -z "${CHECKMARX_THREAT_INTEL_APIKEY}" ]] && {
-    >&2 echo "No API key provided, set CHECKMARX_THREAT_INTEL_APIKEY"; exit 127;
+[[ -z "${CHECKMARX_MPIAPI_KEY}" ]] && {
+    >&2 echo "No API key provided, set CHECKMARX_MPIAPI_KEY"; exit 127;
 }
 
 query_results_file=$(mktemp -t queryresult)
@@ -38,15 +38,15 @@ function join_comma() {
     echo "$*"
 }
 
-function _raw_query_threat_intel() {
+function _raw_query_mpi() {
     query_file=${1}
     ## this uses curl to query the API, and jq to filter the results
     ## so that only packages with risks are returned
-    >&2 echo "sending query to Checkmarx SCS Threat Intel API"
+    >&2 echo "sending query to Checkmarx Malicious Package Identification API"
     web_result=$(mktemp -t webresult)
     "${_curl}" -# -L --compressed 'https://api.scs.checkmarx.com/v2/packages' \
       -H 'Content-type: application/json' \
-      -H "Authorization: ${CHECKMARX_THREAT_INTEL_APIKEY}" \
+      -H "Authorization: ${CHECKMARX_MPIAPI_KEY}" \
       --data "@${query_file}" > "${web_result}"
     # cat "${web_result}"
     "${_jq}" '[ .[] | select(.risks!=[]) ]' < "${web_result}"\
@@ -55,8 +55,8 @@ function _raw_query_threat_intel() {
     rm "${query_file}" "${web_result}"
 }
 
-function query_threat_intel() {
-    ### query_threat_intel queries all packages in the `packages` array
+function query_mpi() {
+    ### query_mpi queries all packages in the `packages` array
     query_file="$(mktemp -t queryfile)"
     echo '[' > "${query_file}"
 
@@ -64,7 +64,7 @@ function query_threat_intel() {
     echo $(join_comma "${packages[@]}") >> "${query_file}"
     echo ']' >> "${query_file}"
 
-    _raw_query_threat_intel "${query_file}"
+    _raw_query_mpi "${query_file}"
 }
 
 function merge_threat_results() {
@@ -80,10 +80,10 @@ function merge_threat_results() {
     if [[ $risky_package_count -gt 0 ]]
     then
         cat "${query_results_file}"
-        >&2 echo "ALERT! found ${risky_package_count} packages with risks! Exiting with code ${CHECKMARX_THREAT_INTEL_EXITCODE}"
+        >&2 echo "ALERT! found ${risky_package_count} packages with risks! Exiting with code ${CHECKMARX_MPIAPI_EXITCODE}"
         >&2 echo "... total of $package_count packages were examined"
         rm "${query_results_file}"
-        exit ${CHECKMARX_THREAT_INTEL_EXITCODE}
+        exit ${CHECKMARX_MPIAPI_EXITCODE}
     else
         >&2 echo "✅ No risky packages identified in this review ($package_count examined)"
     fi
@@ -108,17 +108,17 @@ function process_pip3_result() {
         packages+=("$(pypi_package_spec "${line}")")
         package_count=$(($package_count + 1))
         [[ $((${#packages[@]} % 100 )) -eq 0 ]] && >&2 echo "... 📦 $package_count packages read"
-        if [[ ${#packages[@]} -eq ${CHECKMARX_THREAT_INTEL_MAXQUERY} ]]
+        if [[ ${#packages[@]} -eq ${CHECKMARX_MPIAPI_MAXQUERY} ]]
         then
             ## we hit the max size, run a query!
-            query_threat_intel >> "${query_results_file}"
+            query_mpi >> "${query_results_file}"
             # echo ',' >> "${query_results_file}"
             packages=()
             >&2 echo "Resuming examination of input for NPM packages"
         fi
     done
     >&2 echo "... 📦 $package_count packages read"
-    query_threat_intel >> "${query_results_file}"
+    query_mpi >> "${query_results_file}"
     merge_threat_results "${query_results_file}"
     rm "${query_results_file}"
 }
@@ -163,7 +163,7 @@ process_pip3_result "${CHECKMARX_PIP3_REPORT_FILE}"
 #     You should have received a copy of the GNU Affero General Public License
 #     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ###
-# pip3-check.bash - script to check Python project dependencies that are installable with pip3, using Checkmarx Threat Intel API
+# pip3-check.bash - script to check Python project dependencies that are installable with pip3, using Checkmarx MPIAPI
 #     Copyright (C) 2025  Darren P Meyer
 
 #     This program is free software: you can redistribute it and/or modify

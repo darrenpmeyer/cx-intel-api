@@ -2,17 +2,17 @@
 set -eu
 
 ## set this environment variable in your build environment!
-CHECKMARX_THREAT_INTEL_APIKEY=${CHECKMARX_THREAT_INTEL_APIKEY:-}
+CHECKMARX_MPIAPI_KEY=${CHECKMARX_MPIAPI_KEY:-}
 
 ## configure this if you want; defaults to API server limit, 1000 packages per query
-CHECKMARX_THREAT_INTEL_MAXQUERY=${CHECKMARX_THREAT_INTEL_MAXQUERY:-1000}
+CHECKMARX_MPIAPI_MAXQUERY=${CHECKMARX_MPIAPI_MAXQUERY:-1000}
 
 ## configure this to change the exit code if risks are found; by default it exits 22
-CHECKMARX_THREAT_INTEL_EXITCODE=${CHECKMARX_THREAT_INTEL_EXITCODE:-22}
+CHECKMARX_MPIAPI_EXITCODE=${CHECKMARX_MPIAPI_EXITCODE:-22}
 
 ## exit if no API key
-[[ -z "${CHECKMARX_THREAT_INTEL_APIKEY}" ]] && {
-    >&2 echo "No API key provided, set CHECKMARX_THREAT_INTEL_APIKEY"; exit 127;
+[[ -z "${CHECKMARX_MPIAPI_KEY}" ]] && {
+    >&2 echo "No API key provided, set CHECKMARX_MPIAPI_KEY"; exit 127;
 }
 
 query_results_file=$(mktemp -t queryresult)
@@ -40,15 +40,15 @@ function join_comma() {
     echo "$*"
 }
 
-function _raw_query_threat_intel() {
+function _raw_query_mpi() {
     query_file=${1}
     ## this uses curl to query the API, and jq to filter the results
     ## so that only packages with risks are returned
-    >&2 echo "sending query to Checkmarx SCS Threat Intel API"
+    >&2 echo "sending query to Checkmarx Malicious Package Identification API"
     web_result=$(mktemp -t webresult)
     "${_curl}" -# -L --compressed 'https://api.scs.checkmarx.com/v2/packages' \
       -H 'Content-type: application/json' \
-      -H "Authorization: ${CHECKMARX_THREAT_INTEL_APIKEY}" \
+      -H "Authorization: ${CHECKMARX_MPIAPI_KEY}" \
       --data "@${query_file}" > "${web_result}"
     # cat "${web_result}"
     "${_jq}" '[ .[] | select(.risks!=[]) ]' < "${web_result}"\
@@ -57,8 +57,8 @@ function _raw_query_threat_intel() {
     rm "${query_file}" "${web_result}"
 }
 
-function query_threat_intel() {
-    ### query_threat_intel queries all packages in the `packages` array
+function query_mpi() {
+    ### query_mpi queries all packages in the `packages` array
     query_file="$(mktemp -t queryfile)"
     echo '[' > "${query_file}"
 
@@ -66,7 +66,7 @@ function query_threat_intel() {
     echo $(join_comma "${packages[@]}") >> "${query_file}"
     echo ']' >> "${query_file}"
 
-    _raw_query_threat_intel "${query_file}"
+    _raw_query_mpi "${query_file}"
 }
 
 function merge_threat_results() {
@@ -82,10 +82,10 @@ function merge_threat_results() {
     if [[ $risky_package_count -gt 0 ]]
     then
         cat "${query_results_file}"
-        >&2 echo "ALERT! found ${risky_package_count} packages with risks! Exiting with code ${CHECKMARX_THREAT_INTEL_EXITCODE}"
+        >&2 echo "ALERT! found ${risky_package_count} packages with risks! Exiting with code ${CHECKMARX_MPIAPI_EXITCODE}"
         >&2 echo "... total of $package_count packages were examined"
         rm "${query_results_file}"
-        exit ${CHECKMARX_THREAT_INTEL_EXITCODE}
+        exit ${CHECKMARX_MPIAPI_EXITCODE}
     else
         >&2 echo "✅ No risky packages identified in this review ($package_count examined)"
     fi
@@ -98,15 +98,15 @@ package_count=$(jq length <<< "${base_query}")
 query_results_file=$(mktemp)
 query_file=$(mktemp)
 >&2 echo "📦 ${package_count} packages identified"
-if [[ $package_count -gt $CHECKMARX_THREAT_INTEL_MAXQUERY ]]
+if [[ $package_count -gt $CHECKMARX_MPIAPI_MAXQUERY ]]
 then
     inc_count=0
-    sets=$(( $package_count / $CHECKMARX_THREAT_INTEL_MAXQUERY ))
+    sets=$(( $package_count / $CHECKMARX_MPIAPI_MAXQUERY ))
     sets=$(( $sets + 1 ))
-    >&2 echo "-> exceeds ${CHECKMARX_THREAT_INTEL_MAXQUERY} items, splitting into ${sets} queries"
-    for (( start = 0; start < $package_count; start += $CHECKMARX_THREAT_INTEL_MAXQUERY ))
+    >&2 echo "-> exceeds ${CHECKMARX_MPIAPI_MAXQUERY} items, splitting into ${sets} queries"
+    for (( start = 0; start < $package_count; start += $CHECKMARX_MPIAPI_MAXQUERY ))
     do
-        end=$(( $start + $CHECKMARX_THREAT_INTEL_MAXQUERY ))
+        end=$(( $start + $CHECKMARX_MPIAPI_MAXQUERY ))
         [[ $end -gt $package_count ]] && end=$package_count
         # >&2 echo "$(( $start + 1 ))-${end}"
         jq ".[$start:$end]" <<< "${base_query}" > "${query_file}"
@@ -115,18 +115,18 @@ then
         inc_count=$(( $inc_count + $this_run_count ))
         >&2 echo "... 📦 ${inc_count} packages read"
         >&2 echo -e "preparing to query ${this_run_count} package(s)"
-        _raw_query_threat_intel "${query_file}" >> "${query_results_file}"
+        _raw_query_mpi "${query_file}" >> "${query_results_file}"
     done
 else
     >&2 echo "... 📦 $(jq length "${query_file}") packages read"
     cat <<< "${base_query}" > "${query_file}"
-    _raw_query_threat_intel "${query_file}" >> "${query_results_file}"
+    _raw_query_mpi "${query_file}" >> "${query_results_file}"
 fi
 
 merge_threat_results "${query_results_file}"
 rm "${query_results_file}"
 ###
-# npm-check-lockfile.bash - script to check npm package-lock.json deps using Checkmarx Threat Intel API
+# npm-check-lockfile.bash - script to check npm package-lock.json deps using Checkmarx MPIAPI
 #     Copyright (C) 2025  Darren P Meyer
 
 #     This program is free software: you can redistribute it and/or modify

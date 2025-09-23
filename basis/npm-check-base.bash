@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -eu
-#DESC: script to check npm project dependencies using Checkmarx Threat Intel API
+#DESC: script to check npm project dependencies using Checkmarx MPIAPI
 SCRIPT_SOURCE="$(dirname "$(readlink -f "${0}")")" #%remove - only used for sourcing
 source "${SCRIPT_SOURCE}/common_config.bash" 
 source "${SCRIPT_SOURCE}/common_threat_api.bash"
@@ -27,10 +27,10 @@ function process_npm_result() {
         package_count=$(($package_count + 1))
         [[ $((${#packages[@]} % 100 )) -eq 0 ]] && >&2 echo "... 📦 $package_count packages read"
 
-        if [[ ${#packages[@]} -eq ${CHECKMARX_THREAT_INTEL_MAXQUERY} ]]
+        if [[ ${#packages[@]} -eq ${CHECKMARX_MPIAPI_MAXQUERY} ]]
         then
             ## we hit the max size, run a query!
-            query_threat_intel >> "${query_results_file}"
+            query_mpi >> "${query_results_file}"
             # echo ',' >> "${query_results_file}"
             packages=()
             >&2 echo "Resuming examination of input for NPM packages"
@@ -38,7 +38,7 @@ function process_npm_result() {
     done
     >&2 echo "... 📦 $package_count packages read"
 
-    query_threat_intel >> "${query_results_file}"
+    query_mpi >> "${query_results_file}"
     merge_threat_results "${query_results_file}"
     rm "${query_results_file}"
 }
@@ -59,7 +59,7 @@ else
 fi
 
 ###FOOTER
-# npm-checker-base.bash - script to check npm project dependencies using Checkmarx Threat Intel API
+# npm-checker-base.bash - script to check npm project dependencies using Checkmarx MPIAPI
 #     Copyright (C) 2025  Darren P Meyer
 
 #     This program is free software: you can redistribute it and/or modify

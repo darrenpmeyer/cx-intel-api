@@ -1,6 +1,6 @@
-# Checkmarx Threat Intel API integrations
+# Checkmarx MPIAPI integrations
 
-A collection of tools useful for integrating the Checkmarx SCS Threat Intel API into CI/CD and other automated build processes. These tools require an active API key for the commercial Threat Intel API.
+A collection of tools useful for integrating the Checkmarx Malicious Package Identification API (MPIAPI)into CI/CD and other automated build processes. These tools require an active API key for the commercial MPIAPI. This API was previously known as "SCS Threat Intel API" (hence the repo name).
 
 These tools can be used as-is, but are intended as templates for modification and use. These tools were written by Darren P Meyer while employed by Checkmarx, but are not officially supported by Checkmarx -- they're shared as a form of education and guidance.
 

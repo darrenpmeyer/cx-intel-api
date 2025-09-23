@@ -1,4 +1,4 @@
-# Checkmarx Threat Intel API integrations BASIS area
+# Checkmarx Malicious Package Identification API integrations BASIS area
 
 This directory is where initial development and testing occurs. Essentially, we want to make each integration/utility as self-contained and easy to deploy as possible. To do that, each integration contains its own copy of common functions. But that's a recipe for getting out of sync.
 

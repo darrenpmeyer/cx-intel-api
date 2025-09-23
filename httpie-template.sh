@@ -6,12 +6,12 @@ PKG_NAME="${2:-}"
 [[ -n "${3:-}" ]] || { >&2 echo "Must specifiy package version (e.g. '9.2.2')"; exit 1; }
 PKG_VER="${3:-}"
 
-[[ -n "${CHECKMARX_THREAT_INTEL_APIKEY}" ]] || { >&2 echo "CHECKMARX_THREAT_INTEL_APIKEY must contain an API key"; exit 2; }
+[[ -n "${CHECKMARX_MPIAPI_KEY}" ]] || { >&2 echo "CHECKMARX_MPIAPI_KEY must contain an API key"; exit 2; }
 
 # cat << END
 >&2 echo "Querying ${PKG_SRC} pacakge '${PKG_NAME}@${PKG_VER}'"
 http 'https://api.scs.checkmarx.com/v2/packages' \
-Authorization:${CHECKMARX_THREAT_INTEL_APIKEY} \
+Authorization:${CHECKMARX_MPIAPI_KEY} \
   "[0][name]=${PKG_NAME}"\
   "[0][type]=${PKG_SRC}"\
   "[0][version]=${PKG_VER}"

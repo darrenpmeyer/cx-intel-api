@@ -1,15 +1,15 @@
 ## set this environment variable in your build environment!
-CHECKMARX_THREAT_INTEL_APIKEY=${CHECKMARX_THREAT_INTEL_APIKEY:-}
+CHECKMARX_MPIAPI_KEY=${CHECKMARX_MPIAPI_KEY:-}
 
 ## configure this if you want; defaults to API server limit, 1000 packages per query
-CHECKMARX_THREAT_INTEL_MAXQUERY=${CHECKMARX_THREAT_INTEL_MAXQUERY:-1000}
+CHECKMARX_MPIAPI_MAXQUERY=${CHECKMARX_MPIAPI_MAXQUERY:-1000}
 
 ## configure this to change the exit code if risks are found; by default it exits 22
-CHECKMARX_THREAT_INTEL_EXITCODE=${CHECKMARX_THREAT_INTEL_EXITCODE:-22}
+CHECKMARX_MPIAPI_EXITCODE=${CHECKMARX_MPIAPI_EXITCODE:-22}
 
 ## exit if no API key
-[[ -z "${CHECKMARX_THREAT_INTEL_APIKEY}" ]] && { 
-    >&2 echo "No API key provided, set CHECKMARX_THREAT_INTEL_APIKEY"; exit 127; 
+[[ -z "${CHECKMARX_MPIAPI_KEY}" ]] && { 
+    >&2 echo "No API key provided, set CHECKMARX_MPIAPI_KEY"; exit 127; 
 }
 
 query_results_file=$(mktemp -t queryresult)

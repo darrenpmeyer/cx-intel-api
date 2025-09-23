@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -eu
-#DESC: script to check Python project dependencies that are installable with pip3, using Checkmarx Threat Intel API
+#DESC: script to check Python project dependencies that are installable with pip3, using Checkmarx MPIAPI
 SCRIPT_SOURCE="$(dirname "$(readlink -f "${0}")")" #%remove - only used for sourcing
 source "${SCRIPT_SOURCE}/common_config.bash"
 ## configure this if you want; read report from this file, or generate to this file if it doesn't exist
@@ -27,17 +27,17 @@ function process_pip3_result() {
         packages+=("$(pypi_package_spec "${line}")")
         package_count=$(($package_count + 1))
         [[ $((${#packages[@]} % 100 )) -eq 0 ]] && >&2 echo "... 📦 $package_count packages read"
-        if [[ ${#packages[@]} -eq ${CHECKMARX_THREAT_INTEL_MAXQUERY} ]]
+        if [[ ${#packages[@]} -eq ${CHECKMARX_MPIAPI_MAXQUERY} ]]
         then
             ## we hit the max size, run a query!
-            query_threat_intel >> "${query_results_file}"
+            query_mpi >> "${query_results_file}"
             # echo ',' >> "${query_results_file}"
             packages=()
             >&2 echo "Resuming examination of input for NPM packages"
         fi
     done
     >&2 echo "... 📦 $package_count packages read"
-    query_threat_intel >> "${query_results_file}"
+    query_mpi >> "${query_results_file}"
     merge_threat_results "${query_results_file}"
     rm "${query_results_file}"
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -eu
-#DESC: script to check npm package-lock.json deps using Checkmarx Threat Intel API
+#DESC: script to check npm package-lock.json deps using Checkmarx MPIAPI
 SCRIPT_SOURCE="$(dirname "$(readlink -f "${0}")")" #%remove - only used for sourcing
 source "${SCRIPT_SOURCE}/common_config.bash"
 
@@ -17,15 +17,15 @@ package_count=$(jq length <<< "${base_query}")
 query_results_file=$(mktemp)
 query_file=$(mktemp)
 >&2 echo "📦 ${package_count} packages identified"
-if [[ $package_count -gt $CHECKMARX_THREAT_INTEL_MAXQUERY ]]
+if [[ $package_count -gt $CHECKMARX_MPIAPI_MAXQUERY ]]
 then
     inc_count=0
-    sets=$(( $package_count / $CHECKMARX_THREAT_INTEL_MAXQUERY ))
+    sets=$(( $package_count / $CHECKMARX_MPIAPI_MAXQUERY ))
     sets=$(( $sets + 1 ))
-    >&2 echo "-> exceeds ${CHECKMARX_THREAT_INTEL_MAXQUERY} items, splitting into ${sets} queries"
-    for (( start = 0; start < $package_count; start += $CHECKMARX_THREAT_INTEL_MAXQUERY ))
+    >&2 echo "-> exceeds ${CHECKMARX_MPIAPI_MAXQUERY} items, splitting into ${sets} queries"
+    for (( start = 0; start < $package_count; start += $CHECKMARX_MPIAPI_MAXQUERY ))
     do
-        end=$(( $start + $CHECKMARX_THREAT_INTEL_MAXQUERY ))
+        end=$(( $start + $CHECKMARX_MPIAPI_MAXQUERY ))
         [[ $end -gt $package_count ]] && end=$package_count
         # >&2 echo "$(( $start + 1 ))-${end}"
         jq ".[$start:$end]" <<< "${base_query}" > "${query_file}"
@@ -34,12 +34,12 @@ then
         inc_count=$(( $inc_count + $this_run_count ))
         >&2 echo "... 📦 ${inc_count} packages read"
         >&2 echo -e "preparing to query ${this_run_count} package(s)"
-        _raw_query_threat_intel "${query_file}" >> "${query_results_file}"
+        _raw_query_mpi "${query_file}" >> "${query_results_file}"
     done
 else
     >&2 echo "... 📦 $(jq length "${query_file}") packages read"
     cat <<< "${base_query}" > "${query_file}"
-    _raw_query_threat_intel "${query_file}" >> "${query_results_file}"
+    _raw_query_mpi "${query_file}" >> "${query_results_file}"
 fi
 
 merge_threat_results "${query_results_file}"

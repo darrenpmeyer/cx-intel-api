@@ -3,15 +3,15 @@ function join_comma() {
     echo "$*"
 }
 
-function _raw_query_threat_intel() {
+function _raw_query_mpi() {
     query_file=${1}
     ## this uses curl to query the API, and jq to filter the results
     ## so that only packages with risks are returned
-    >&2 echo "sending query to Checkmarx SCS Threat Intel API"
+    >&2 echo "sending query to Checkmarx Malicious Package Identification API"
     web_result=$(mktemp -t webresult)
     "${_curl}" -# -L --compressed 'https://api.scs.checkmarx.com/v2/packages' \
       -H 'Content-type: application/json' \
-      -H "Authorization: ${CHECKMARX_THREAT_INTEL_APIKEY}" \
+      -H "Authorization: ${CHECKMARX_MPIAPI_KEY}" \
       --data "@${query_file}" > "${web_result}"
     # cat "${web_result}"
     "${_jq}" '[ .[] | select(.risks!=[]) ]' < "${web_result}"\
@@ -20,8 +20,8 @@ function _raw_query_threat_intel() {
     rm "${query_file}" "${web_result}"
 }
 
-function query_threat_intel() {
-    ### query_threat_intel queries all packages in the `packages` array
+function query_mpi() {
+    ### query_mpi queries all packages in the `packages` array
     query_file="$(mktemp -t queryfile)"
     echo '[' > "${query_file}"
 
@@ -29,7 +29,7 @@ function query_threat_intel() {
     echo $(join_comma "${packages[@]}") >> "${query_file}"
     echo ']' >> "${query_file}"
 
-    _raw_query_threat_intel "${query_file}"
+    _raw_query_mpi "${query_file}"
 }
 
 function merge_threat_results() {
@@ -45,10 +45,10 @@ function merge_threat_results() {
     if [[ $risky_package_count -gt 0 ]]
     then
         cat "${query_results_file}"
-        >&2 echo "ALERT! found ${risky_package_count} packages with risks! Exiting with code ${CHECKMARX_THREAT_INTEL_EXITCODE}"
+        >&2 echo "ALERT! found ${risky_package_count} packages with risks! Exiting with code ${CHECKMARX_MPIAPI_EXITCODE}"
         >&2 echo "... total of $package_count packages were examined"
         rm "${query_results_file}"
-        exit ${CHECKMARX_THREAT_INTEL_EXITCODE}
+        exit ${CHECKMARX_MPIAPI_EXITCODE}
     else
         >&2 echo "✅ No risky packages identified in this review ($package_count examined)"
     fi

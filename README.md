@@ -12,6 +12,7 @@ These tools can be used as-is, but are intended as templates for modification an
     `pyproject.toml`, or a PyPI spec like `requests==2.32.3` -- basically anything that `pip3 install` will accept. It uses `pip3` to determine what would be installed and exits non-zero if any of those package versions have supply-chain risks (other than known vulnerabilities) or are known to be malicious / malware.
 * [`httpie-template.sh`](http-template.sh) is a simple example script for using the [HTTPie command-line tool](https://httpie.io/cli) to query the API; it is run as `bash httpie-template.sh ECOSYSTEM PACKAGE_NAME VERSION` and checks a single package. It's in the repo to help implementors and researchers with a starting point to write their own simple scripts.
 
+
 Note that the `basis` directory is intended as development-only; it's strongly recommended not to use any scripts there directly.
 
 ## Verification
